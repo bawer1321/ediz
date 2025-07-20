@@ -1,0 +1,145 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  books         Book[]
+  notes         Note[]
+  quotes        Quote[]
+  readingGoals  ReadingGoal[]
+  readingSessions ReadingSession[]
+
+  @@map("users")
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  author      String
+  publisher   String?
+  publishedYear Int?
+  pageCount   Int?
+  isbn        String?
+  description String?
+  coverUrl    String?
+  genre       String?
+  language    String?   @default("tr")
+  
+  // User relation
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Reading status
+  status      ReadingStatus @default(TO_READ)
+  rating      Float?        // 0-10 arası puanlama
+  
+  // Dates
+  startDate   DateTime?
+  finishDate  DateTime?
+  addedDate   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  // Relations
+  notes       Note[]
+  quotes      Quote[]
+  readingSessions ReadingSession[]
+
+  @@map("books")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String   // Markdown destekli
+  page      Int?     // Hangi sayfada alınan not
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+model Quote {
+  id        String   @id @default(cuid())
+  content   String
+  page      Int?     // Hangi sayfada alınan alıntı
+  tags      String?  // JSON array olarak saklanacak etiketler
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("quotes")
+}
+
+model ReadingGoal {
+  id          String     @id @default(cuid())
+  year        Int
+  targetBooks Int
+  targetPages Int?
+  period      GoalPeriod @default(YEARLY)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  // Relations
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, period])
+  @@map("reading_goals")
+}
+
+model ReadingSession {
+  id          String   @id @default(cuid())
+  startPage   Int
+  endPage     Int
+  duration    Int?     // dakika cinsinden
+  sessionDate DateTime @default(now())
+  notes       String?
+  
+  // Relations
+  bookId      String
+  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reading_sessions")
+}
+
+enum ReadingStatus {
+  TO_READ
+  READING
+  COMPLETED
+  PAUSED
+  DNF // Did Not Finish
+}
+
+enum GoalPeriod {
+  YEARLY
+  MONTHLY
+  WEEKLY
+}
